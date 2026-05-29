@@ -22,7 +22,7 @@ The application performs automated tumor segmentation, separates tumor regions i
 
 ### Segmentation Overview
 
-![Segmentation Overview](screenshots/overview_and_2dSliceOverlayViewer.png)
+![Segmentation Overview](screenshots/overview_and_2dSliceOverlay.png)
 
 ### Multimodal Axial Viewer
 
