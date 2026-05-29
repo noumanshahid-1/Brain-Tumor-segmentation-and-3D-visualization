@@ -1,0 +1,7 @@
+Place the trained brain tumor segmentation checkpoint here.
+
+Expected default path:
+backend/model/unet3d_best.pt
+
+This checkpoint is intentionally excluded from GitHub because model files are large.
+Update backend/model/infer_wrapper.py if you use a different checkpoint path.

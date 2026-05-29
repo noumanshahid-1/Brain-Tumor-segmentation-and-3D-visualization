@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain Tumor Segmentation & 3D Visualization</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- HERO / UPLOAD -->
+    <header class="hero">
+      <div class="hero-content">
+        <div class="eyebrow">
+          <span class="pulse-dot"></span>
+          AI Medical Imaging Research Demo
+        </div>
+
+        <h1>Brain Tumor Segmentation & 3D Visualization</h1>
+
+        <p class="hero-lead">
+          Upload a brain MRI NIfTI volume, run automated segmentation, inspect ET / ED / NET regions,
+          visualize separate tumor foci, and explore 2D, multimodal, and 3D outputs in one research interface.
+        </p>
+
+        <div class="hero-tags">
+          <span>3D U-Net Inference</span>
+          <span>ET / ED / NET Analysis</span>
+          <span>Connected Tumor Foci</span>
+          <span>Interactive 3D Preview</span>
+        </div>
+      </div>
+
+      <div class="upload-card glass-card">
+        <div class="upload-title-row">
+          <div>
+            <p class="section-kicker">Step 01</p>
+            <h2>Upload MRI Case</h2>
+          </div>
+          <span class="status-pill">NIfTI Ready</span>
+        </div>
+
+        <div id="drop" class="file-drop">
+          <input id="file" type="file" accept=".nii,.gz,.nii.gz" />
+
+          <div class="drop-inner">
+            <div class="upload-orb">
+              <span>+</span>
+            </div>
+
+            <h3>Drop your MRI volume here</h3>
+            <p>
+              Supports single-volume and multimodal NIfTI files. Use BraTS-style ordering when available:
+              FLAIR, T1, T1ce, T2.
+            </p>
+
+            <button id="pickBtn" class="btn secondary" type="button">
+              Choose NIfTI File
+            </button>
+
+            <div id="fname" class="fname">No file selected yet.</div>
+          </div>
+        </div>
+
+        <div class="run-row">
+          <button id="runBtn" class="btn primary" type="button">
+            Run Segmentation
+          </button>
+        </div>
+
+        <div id="status" class="status hidden"></div>
+      </div>
+    </header>
+
+    <!-- RESULTS -->
+    <main id="result" class="result hidden">
+      <!-- OVERVIEW -->
+      <section class="showcase-section">
+        <div class="section-heading">
+          <p class="section-kicker">Step 02</p>
+          <h2>Segmentation Overview</h2>
+          <p>
+            High-level tumor burden, regional volume breakdown, model confidence, and downloadable outputs.
+          </p>
+        </div>
+
+        <div class="overview-grid">
+          <article class="metric-card hero-metric">
+            <div class="metric-label">Total predicted tumor volume</div>
+            <div class="volume-line">
+              <span id="vol">–</span>
+              <small>mL</small>
+            </div>
+
+            <div class="breakdown-list">
+              <div>
+                <span class="color-dot ed"></span>
+                <p>Edema / ED</p>
+                <strong><span id="vol-edema">–</span> mL</strong>
+              </div>
+
+              <div>
+                <span class="color-dot net"></span>
+                <p>Non-enhancing core / NET</p>
+                <strong><span id="vol-net">–</span> mL</strong>
+              </div>
+
+              <div>
+                <span class="color-dot et"></span>
+                <p>Enhancing tumor / ET</p>
+                <strong><span id="vol-et">–</span> mL</strong>
+              </div>
+
+              <div>
+                <span class="color-dot blue"></span>
+                <p>Reportable foci</p>
+                <strong><span id="tumor-count">–</span></strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="metric-card confidence-card">
+            <div class="metric-label">Model confidence</div>
+
+            <div class="confidence-values">
+              <div>
+                <span id="conf-mean">–</span>
+                <small>Mean</small>
+              </div>
+
+              <div>
+                <span id="conf-max">–</span>
+                <small>Max</small>
+              </div>
+            </div>
+
+            <div class="bar">
+              <div id="conf-bar"></div>
+            </div>
+
+            <p class="mini-note">
+              Confidence is derived from prediction probabilities and should be interpreted as research metadata.
+            </p>
+          </article>
+
+          <article class="metric-card artifacts-card">
+            <div class="metric-label">Generated artifacts</div>
+
+            <div class="artifact-links">
+              <a id="dlMask" class="artifact-link" href="#" target="_blank" rel="noopener">
+                <span>Segmentation Mask</span>
+                <strong>NIfTI</strong>
+              </a>
+
+              <a id="openViz" class="artifact-link" href="#" target="_blank" rel="noopener">
+                <span>Standalone 3D Viewer</span>
+                <strong>HTML</strong>
+              </a>
+
+              <a id="dlMetadata" class="artifact-link" href="#" target="_blank" rel="noopener">
+                <span>Case Metadata</span>
+                <strong>JSON</strong>
+              </a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- MAIN VISUALIZATION -->
+      <section class="showcase-section visual-section">
+        <div class="section-heading">
+          <p class="section-kicker">Step 03</p>
+          <h2>Main Segmentation Viewer</h2>
+          <p>
+            Inspect axial, coronal, and sagittal overlay slices with adjustable tumor-mask opacity.
+          </p>
+        </div>
+
+        <div class="viewer-card glass-card">
+          <div class="viewer-toolbar">
+            <div class="legend-group">
+              <span><i class="legend-dot et"></i>ET</span>
+              <span><i class="legend-dot ed"></i>ED</span>
+              <span><i class="legend-dot net"></i>NET</span>
+            </div>
+
+            <label class="opacity-control" for="alpha">
+              <span>Overlay opacity</span>
+              <input id="alpha" type="range" min="0" max="1" step="0.05" value="0.5" />
+            </label>
+          </div>
+
+          <div class="slice-grid">
+            <article class="slice-card">
+              <div class="slice-top">
+                <h3>Axial</h3>
+                <div class="slice-ctrl">
+                  <input id="axialIdx" type="range" min="0" max="1" value="0" />
+                  <span id="axialVal" class="idx">0</span>
+                </div>
+              </div>
+
+              <div class="scan-frame">
+                <img id="img-axial" alt="Axial MRI segmentation overlay" />
+              </div>
+            </article>
+
+            <article class="slice-card">
+              <div class="slice-top">
+                <h3>Coronal</h3>
+                <div class="slice-ctrl">
+                  <input id="corIdx" type="range" min="0" max="1" value="0" />
+                  <span id="corVal" class="idx">0</span>
+                </div>
+              </div>
+
+              <div class="scan-frame">
+                <img id="img-cor" alt="Coronal MRI segmentation overlay" />
+              </div>
+            </article>
+
+            <article class="slice-card">
+              <div class="slice-top">
+                <h3>Sagittal</h3>
+                <div class="slice-ctrl">
+                  <input id="sagIdx" type="range" min="0" max="1" value="0" />
+                  <span id="sagVal" class="idx">0</span>
+                </div>
+              </div>
+
+              <div class="scan-frame">
+                <img id="img-sag" alt="Sagittal MRI segmentation overlay" />
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3D VIEWER -->
+      <section class="showcase-section">
+        <div class="section-heading section-heading-row">
+          <div>
+            <p class="section-kicker">Step 04</p>
+            <h2>Interactive 3D Visualization</h2>
+            <p>
+              Load the generated 3D segmentation surface to inspect tumor morphology and region separation.
+            </p>
+          </div>
+
+          <button id="load3d" class="btn primary" type="button" disabled>
+            Load 3D Preview
+          </button>
+        </div>
+
+        <div class="viz-card glass-card">
+          <div id="viz3d-placeholder" class="viz-placeholder">
+            <div class="viz-placeholder-inner">
+              <div class="cube-icon">
+                <span></span>
+              </div>
+              <h3>3D preview is ready after segmentation</h3>
+              <p class="hint">
+                Run segmentation first, then load the interactive 3D viewer.
+              </p>
+            </div>
+          </div>
+
+          <iframe id="viz3d" class="hidden" title="3D tumor visualization"></iframe>
+        </div>
+      </section>
+
+      <!-- MULTIMODAL VIEWER -->
+      <section id="mm-card" class="showcase-section hidden">
+        <div class="section-heading">
+          <p class="section-kicker">Step 05</p>
+          <h2>Multimodal Axial Viewer</h2>
+          <p>
+            Compare the same axial slice across available MRI modalities.
+          </p>
+        </div>
+
+        <div class="modality-grid">
+          <article class="modality-card glass-card">
+            <h3>FLAIR</h3>
+            <div class="scan-frame">
+              <img id="img-mm-flair" loading="lazy" alt="FLAIR axial slice" />
+            </div>
+          </article>
+
+          <article class="modality-card glass-card">
+            <h3>T1</h3>
+            <div class="scan-frame">
+              <img id="img-mm-t1" loading="lazy" alt="T1 axial slice" />
+            </div>
+          </article>
+
+          <article class="modality-card glass-card">
+            <h3>T1ce</h3>
+            <div class="scan-frame">
+              <img id="img-mm-t1ce" loading="lazy" alt="T1ce axial slice" />
+            </div>
+          </article>
+
+          <article class="modality-card glass-card">
+            <h3>T2</h3>
+            <div class="scan-frame">
+              <img id="img-mm-t2" loading="lazy" alt="T2 axial slice" />
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- TUMOR FOCI -->
+      <section class="showcase-section">
+        <div class="section-heading section-heading-row">
+          <div>
+            <p class="section-kicker">Step 06</p>
+            <h2>Separate Tumor Foci</h2>
+            <p>
+              Each card represents a reportable connected 3D tumor component with isolated mask preview,
+              anatomical context, composition, and metadata.
+            </p>
+          </div>
+
+          <div class="legend-group large">
+            <span><i class="legend-dot et"></i>ET</span>
+            <span><i class="legend-dot ed"></i>ED</span>
+            <span><i class="legend-dot net"></i>NET</span>
+          </div>
+        </div>
+
+        <div id="hidden-components-summary" class="hidden-components-summary hidden"></div>
+        <div id="tumor-components-list" class="tumor-components-list"></div>
+      </section>
+
+      <!-- REPORT -->
+      <section class="showcase-section report-section">
+        <div class="section-heading">
+          <p class="section-kicker">Step 07</p>
+          <h2>AI Summary</h2>
+          <p>
+            Structured research summary generated from predicted mask volumes, connected components, and confidence metadata.
+          </p>
+        </div>
+
+        <div class="report-layout">
+          <article class="report-card glass-card">
+            <ul id="report-list"></ul>
+            <p class="report-note">
+              This summary is generated by an experimental AI model and is not a substitute for clinical judgment.
+            </p>
+          </article>
+
+          <aside class="disclaimer-box">
+            <strong>Research use only.</strong>
+            This tool is intended for educational and research visualization of automated brain tumor segmentation.
+            It is not intended for clinical diagnosis, treatment planning, or replacement of expert radiological review.
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 3D Loading Modal -->
+  <div id="modal3d" class="modal3d hidden">
+    <div class="modal3d-box">
+      <div class="spinner big"></div>
+      <p id="modal3d-msg">Rendering 3D visualization…</p>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden" role="alert"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
