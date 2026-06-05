@@ -168,7 +168,6 @@ git clone https://github.com/noumanshahid-1/brain-tumor-segmentation-3d-visualiz
 cd brain-tumor-segmentation-3d-visualization
 ```
 
-Replace `noumanshahid-1` with your GitHub username.
 
 ---
 
